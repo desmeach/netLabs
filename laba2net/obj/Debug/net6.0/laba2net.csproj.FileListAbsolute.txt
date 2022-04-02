@@ -1,0 +1,15 @@
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\laba2net.exe
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\laba2net.deps.json
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\laba2net.runtimeconfig.json
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\laba2net.dll
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\ref\laba2net.dll
+C:\Users\vladn\source\repos\net\laba2net\laba2net\bin\Debug\net6.0\laba2net.pdb
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.csproj.AssemblyReference.cache
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.AssemblyInfoInputs.cache
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.AssemblyInfo.cs
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.csproj.CoreCompileInputs.cache
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.dll
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\ref\laba2net.dll
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.pdb
+C:\Users\vladn\source\repos\net\laba2net\laba2net\obj\Debug\net6.0\laba2net.genruntimeconfig.cache
