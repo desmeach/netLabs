@@ -7,50 +7,93 @@ namespace FtpConsoleClient
 {
     class Program
     {
-        static void Main(string[] args)
-        {
-            // Создаем объект FtpWebRequest
-            FtpWebRequest request = (FtpWebRequest)WebRequest.Create("ftp://localhost:21/Data/");
-            // устанавливаем метод на загрузку файлов
-            request.Method = "PWD";
-                //WebRequestMethods.Ftp.PrintWorkingDirectory;
-            // login in
-            request.Credentials = new NetworkCredential("anonymous", "123");
-            request.EnableSsl = true; // если используется ssl
-            ServicePointManager.ServerCertificateValidationCallback =
+        class FtpClient {
+            private string host;
+            private string uri;
+            private string password;
+            private string username;
+
+            public bool Passive = true;
+            public bool Binary = true;
+            public bool EnableSsl = false;
+            public bool Hash = false;
+            public FtpClient(string host, string username, string password)
+            {
+                this.host = host;
+                uri = "ftp://" + host;
+                this.username = username;
+                this.password = password;
+            }
+            public string combine(string path1, string path2)
+            {
+                return Path.Combine(path1, path2).Replace("\\", "/");
+            }
+            public FtpWebRequest createRequest(string method)
+            {
+                return createRequest(uri, method);
+            }
+            private FtpWebRequest createRequest(string uri, string method)
+            {
+                var r = (FtpWebRequest)WebRequest.Create(uri);
+
+                r.Credentials = new NetworkCredential(username, password);
+                r.Method = method;
+                r.UseBinary = Binary;
+                r.EnableSsl = EnableSsl;
+                r.UsePassive = Passive;
+                ServicePointManager.ServerCertificateValidationCallback =
                       (s, certificate, chain, sslPolicyErrors) => true;
 
-            // получаем ответ от сервера в виде объекта FtpWebResponse
-            FtpWebResponse response = (FtpWebResponse)request.GetResponse();
-            // получаем поток ответа
-            Stream responseStream = response.GetResponseStream();
-            // сохраняем файл в дисковой системе
-            // создаем поток для сохранения файла
-            /*FileStream fs = new FileStream("F:/newTest.txt", FileMode.Create);
-
-            //Буфер для считываемых данных
-            byte[] buffer = new byte[64];
-            int size = 0;
-            while ((size = responseStream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                fs.Write(buffer, 0, size);
+                return r;
             }
-            fs.Close();*/
-            byte[] buffer = new byte[64];
-            int size = responseStream.Read(buffer, 0, buffer.Length);
-            Console.WriteLine("Working directory: " + Encoding.UTF8.GetString(buffer));
-            response.Close();
+            public void ChangeWorkingDirectory(string path)
+            {
+                uri = combine(uri, path);
+            }
+            public string PrintWorkingDirectory()
+            {
+                return uri.Replace("ftp://" + host, "/");
+            }          
+            public string[] ListDirectoryDetails()
+            {
+                var list = new List<string>();
 
-            request.Method = WebRequestMethods.Ftp.ListDirectory;
-            response = (FtpWebResponse)request.GetResponse();
-            responseStream = response.GetResponseStream();
+                var request = createRequest(WebRequestMethods.Ftp.ListDirectoryDetails);
+                var response = (FtpWebResponse)request.GetResponse();
+                using (var stream = response.GetResponseStream())
+                {
+                    using (var reader = new StreamReader(stream, true))
+                    {
+                        while (!reader.EndOfStream)
+                        {
+                            list.Add(reader.ReadLine());
+                        }
+                    }
+                }
+                Console.WriteLine($"Статус: {response.StatusDescription}");
+                return list.ToArray();
+            }
+        }
+        static void Main()
+        {
+            Console.WriteLine("Введите адрес хоста: ");
+            string host = Console.ReadLine();
+            //login in
+            Console.WriteLine("Введите логин: ");
+            string username = Console.ReadLine();
+            Console.WriteLine("Введите пароль: ");
+            string password = Console.ReadLine();
+            FtpClient client = new FtpClient(host, username, password);
 
-            Console.WriteLine("Files in directory: " + responseStream.ToString());
-
-            response.Close();
-
-            Console.WriteLine("Загрузка и сохранение файла завершены");
-            Console.Read();
+            client.ChangeWorkingDirectory("Data");
+            string[] list = client.ListDirectoryDetails();
+            for (int i = 0; i < list.Length; i++)
+                Console.WriteLine(list[i]);
+            /*client.ChangeWorkingDirectory("Data");
+            list = client.ListDirectoryDetails();
+            for (int i = 0; i < list.Length; i++)
+                Console.WriteLine(list[i]);*/
+            Console.WriteLine("Current directory: " + client.PrintWorkingDirectory());
         }
     }
 }
