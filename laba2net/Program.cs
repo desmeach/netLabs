@@ -20,14 +20,20 @@ namespace FtpConsoleClient
             public bool Hash = false;
             public FtpClient(string host, string username, string password)
             {
-                this.host = host;
-                uri = "ftp://" + host;
+                if (!host.Contains("ftp://"))
+                    this.host = "ftp://" + host;
+                else
+                    this.host = host;
+                uri = this.host;
                 this.username = username;
                 this.password = password;
             }
             public string combine(string path1, string path2)
             {
-                return Path.Combine(path1, path2).Replace("\\", "/");
+                if (path2[0] == '/')
+                    return host + path2;
+                else
+                    return Path.Combine(path1, path2).Replace("\\", "/");
             }
             public FtpWebRequest createRequest(string method)
             {
@@ -36,7 +42,7 @@ namespace FtpConsoleClient
             private FtpWebRequest createRequest(string uri, string method)
             {
                 var r = (FtpWebRequest)WebRequest.Create(uri);
-
+             
                 r.Credentials = new NetworkCredential(username, password);
                 r.Method = method;
                 r.UseBinary = Binary;
@@ -50,6 +56,11 @@ namespace FtpConsoleClient
             public void ChangeWorkingDirectory(string path)
             {
                 uri = combine(uri, path);
+            }
+            public void GetPastDir()
+            {
+                string[] split = uri.Split("/");
+                uri = uri.Replace("/" + split[split.Length - 1], "");
             }
             public string PrintWorkingDirectory()
             {
@@ -73,6 +84,81 @@ namespace FtpConsoleClient
                 }
                 Console.WriteLine($"Статус: {response.StatusDescription}");
                 return list.ToArray();
+            }
+            public void RemoveDir()
+            {
+                var list = new List<string>();
+                var request = createRequest(WebRequestMethods.Ftp.ListDirectoryDetails);
+                var response = (FtpWebResponse)request.GetResponse();
+                Regex parser = new Regex(@"(?<dir>[\-dl])(?<permission>([\-r][\-w][\-xs]){3})\s+\d+\s+\w+\s+\w+\s+(?<size>\d+)\s+(?<timestamp>\w+\s+\d+\s+\d+.\d+)\s+(?<name>.+)");
+                using (var stream = response.GetResponseStream())
+                {
+                    using (var reader = new StreamReader(stream, true))
+                    {
+                        while (!reader.EndOfStream)
+                        {
+                            list.Add(reader.ReadLine());
+                        }
+                        if (list.Count > 0)
+                        {
+                            foreach (string line in list)
+                            {
+                                Match match = parser.Match(line);
+                                if (match != null)
+                                {
+                                    ChangeWorkingDirectory(match.Groups["name"].ToString());
+                                    if (match.Groups["dir"].ToString() == "d")
+                                    {
+                                        RemoveDir();
+                                    }
+                                    else
+                                    {
+                                        request = createRequest(WebRequestMethods.Ftp.DeleteFile);
+                                        response = (FtpWebResponse)request.GetResponse();
+                                        if (response.StatusDescription.Contains("200"))
+                                            Console.WriteLine($"File {uri} removed successfully.\nStatus: " + response.StatusDescription);
+                                        else
+                                            Console.WriteLine("Error.\nStatus: " + response.StatusDescription);
+                                        response.Close();
+                                    }
+                                    uri = uri.Replace("/" + match.Groups["name"].ToString(), "");
+                                }
+                            }
+                        }
+                        request = createRequest(WebRequestMethods.Ftp.RemoveDirectory);
+                        response = (FtpWebResponse)request.GetResponse();
+                        if (response.StatusDescription.Contains("200"))
+                            Console.WriteLine($"Dir {uri} removed successfully.\nStatus: " + response.StatusDescription);
+                        else
+                            Console.WriteLine("Error.\nStatus: " + response.StatusDescription);
+                        response.Close();
+                    }
+                }
+            }
+            public void RemoveSizeGreater()
+            {
+                string pastUri = uri;
+                int size;
+                Console.WriteLine("Enter size to delete dir: ");
+                try
+                {
+                    int.TryParse(Console.ReadLine(), out size);
+                    Console.WriteLine("Enter dir path: ");
+                    string path = Console.ReadLine();
+                    ChangeWorkingDirectory(path);
+                    if (GetDirSize() > size)
+                    {
+                        RemoveDir();
+                    }
+                    else
+                        Console.WriteLine("Dir's size not greater");
+                    uri = pastUri;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error: " + ex);
+                }
+
             }
             public long GetDirSize()
             {
@@ -123,27 +209,66 @@ namespace FtpConsoleClient
                 }
             }
         }
+        private static void PrintMenu()
+        {
+            Console.WriteLine("1) Change dir\n" +
+                "2) Get size of dir\n" +
+                "3) Delete dir if size greater\n" +
+                "4) Go to past dir\n" +
+                "5) Quit");
+        }
         static void Main()
         {
-            Console.WriteLine("Введите адрес хоста: ");
+            Console.WriteLine("Enter host name: ");
             string host = Console.ReadLine();
             //login in
-            Console.WriteLine("Введите логин: ");
+            Console.WriteLine("Enter login: ");
             string username = Console.ReadLine();
-            Console.WriteLine("Введите пароль: ");
+            Console.WriteLine("Enter password: ");
             string password = Console.ReadLine();
             FtpClient client = new FtpClient(host, username, password);
-
-            client.ChangeWorkingDirectory("Examples");
-            Console.WriteLine(client.GetDirSize());
-            string[] list = client.ListDirectoryDetails();
-            for (int i = 0; i < list.Length; i++)
-                Console.WriteLine(list[i]);
-            /*client.ChangeWorkingDirectory("Data");
-            list = client.ListDirectoryDetails();
-            for (int i = 0; i < list.Length; i++)
-                Console.WriteLine(list[i]);*/
-            Console.WriteLine("Current directory: " + client.PrintWorkingDirectory());
+            try
+            {
+                string choice = "";
+                do
+                {
+                    Console.Clear();
+                    Console.WriteLine("Current directory: " + client.PrintWorkingDirectory());
+                    string[] list = client.ListDirectoryDetails();
+                    for (int i = 0; i < list.Length; i++)
+                        Console.WriteLine(list[i]);
+                    PrintMenu();
+                    choice = Console.ReadLine();
+                    switch (choice)
+                    {
+                        case "1":
+                            try
+                            {
+                                Console.WriteLine("Enter dir: ");
+                                client.ChangeWorkingDirectory(Console.ReadLine());
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Exception: " + ex);
+                            }
+                            break;
+                        case "2":
+                            Console.WriteLine("Size of dir: " + client.GetDirSize());
+                            break;
+                        case "3":
+                            client.RemoveSizeGreater();
+                            break;
+                        case "4":
+                            client.GetPastDir();
+                            break;
+                    }
+                    Console.ReadLine();
+                } while (choice != "5");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Exception: " + ex);
+            }
         }
     }
 }
