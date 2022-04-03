@@ -138,13 +138,14 @@ namespace FtpConsoleClient
             public void RemoveSizeGreater()
             {
                 string pastUri = uri;
+                string path;
                 int size;
                 Console.WriteLine("Enter size to delete dir: ");
                 try
                 {
                     int.TryParse(Console.ReadLine(), out size);
                     Console.WriteLine("Enter dir path: ");
-                    string path = Console.ReadLine();
+                    path = Console.ReadLine();
                     ChangeWorkingDirectory(path);
                     if (GetDirSize() > size)
                     {
@@ -152,7 +153,13 @@ namespace FtpConsoleClient
                     }
                     else
                         Console.WriteLine("Dir's size not greater");
-                    uri = pastUri;
+                    if (pastUri.Contains(path))
+                    {
+                        uri = host + path;
+                        GetPastDir();
+                    }
+                    else
+                        uri = pastUri;
                 }
                 catch (Exception ex)
                 {
@@ -264,6 +271,7 @@ namespace FtpConsoleClient
                     }
                     Console.ReadLine();
                 } while (choice != "5");
+                Console.WriteLine("Goodbye!");
             }
             catch (Exception ex)
             {
